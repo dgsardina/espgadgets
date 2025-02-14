@@ -1,0 +1,64 @@
+mqtt:
+  broker: !secret mqtt_broker
+  port: !secret mqtt_port
+  username: !secret mqtt_username
+  password: !secret mqtt_password
+  discovery: True
+  discovery_retain: True
+  discovery_unique_id_generator: "mac"
+  keepalive: 120s
+  #birth_message:
+  will_message:
+  topic_prefix: "esphome/${device_name}"
+  on_message:
+    - topic: "esphome/${device_name}/ota_mode"
+      payload: 'ON'
+      then:
+        - lambda: |-
+            id(ota_mode) = true;
+        - logger.log: "Disabling deep sleep"
+        - deep_sleep.prevent: deep_sleep_1
+    - topic: "esphome/${device_name}/ota_mode"
+      payload: 'OFF'
+      then:
+        - lambda: |-
+            id(ota_mode) = false;
+        - logger.log: "Allowing deep sleep"
+    - topic: "esphome/ota_mode"
+      payload: 'ON'
+      then:
+        - lambda: |-
+            id(ota_mode) = true;
+        - logger.log: "Disabling deep sleep to all devices"
+        - deep_sleep.prevent: deep_sleep_1
+    - topic: "esphome/ota_mode"
+      payload: 'OFF'
+      then:
+        - lambda: |-
+            id(ota_mode) = false;
+        - logger.log: "Allowing deep sleep to all devices"
+    - topic: "esphome/${device_name}/sleep_mode"
+      payload: 'ON'
+      then:
+        - if:
+            condition:
+              lambda: |-
+                return !id(ota_mode);
+            then:
+              - logger.log: "Forcing deep sleep"
+              - deep_sleep.enter: deep_sleep_1
+            else:
+              - logger.log: "Prevented deep sleep"
+    - topic: "esphome/sleep_mode"
+      payload: 'ON'
+      then:
+        - if:
+            condition:
+              lambda: |-
+                return !id(ota_mode);
+            then:
+              - logger.log: "Forcing deep sleep to all devices"
+              - deep_sleep.enter: deep_sleep_1
+            else:
+              - logger.log: "Prevented deep sleep broadcast"
+

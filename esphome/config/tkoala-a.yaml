@@ -1,0 +1,261 @@
+substitutions:
+  device_name: "tkoala-a"
+  #voltage_divider: "1.810"
+
+esphome:
+  name: "${device_name}"
+  platform: ESP32
+  board: esp32dev
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  #manual_ip:
+  #  static_ip: 192.168.1.62
+  #  gateway: 192.168.1.254
+  #  subnet: 255.255.255.0
+
+  # Only use the following if only one AP with this SSID
+  # Or when connecting to hidden ssid
+  fast_connect: true
+
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  #ap:
+  #  ssid: "${device_name}"
+  #  password: "12345678"
+
+#captive_portal:
+
+logger:
+
+
+ota:
+
+api:
+
+#time:
+#  - platform: homeassistant
+#    id: esptime
+#    timezone: Europe/Athens
+
+binary_sensor:
+  - platform: ble_presence
+    mac_address: "A4:C1:38:C1:CA:C3"
+    name: "MHOC401 Presence"
+#  - platform: gpio
+#    name: "${device_name}_sw1"
+#    id: tkoala_sw1
+#    pin:
+#      number: GPIO00
+#      mode: INPUT_PULLUP
+#      inverted: True
+#    filters:
+#        - delayed_on: 5ms
+#    on_click:
+#      min_length: 50ms
+#      max_length: 350ms
+#      then:
+#        - if:
+#            condition:
+#              - light.is_off:
+#                  id: tkoala_led
+#            then:
+#              - light.turn_on:
+#                  id: tkoala_led
+#                  brightness: 80%
+#            else:
+#              - light.turn_off: tkoala_led
+
+esp32_ble_tracker:
+
+sensor:
+  - platform: uptime
+    name: "${device_name} Uptime Sec"
+    id: uptime_sec
+    internal: true
+
+  - platform: wifi_signal
+    id: wifi_strength
+    name: "${device_name} WiFi Signal"
+    update_interval: 360s
+
+  - platform: ble_rssi
+    mac_address: "A4:C1:38:C1:CA:C3"
+    name: "MHOC401 RSSI"
+
+  - platform: xiaomi_mhoc401
+    mac_address: "A4:C1:38:C1:CA:C3"
+    bindkey: "56d9d1e9f8b8468248aa74f838e7c805"
+    temperature:
+      name: "MHOC401 Temp"
+    humidity:
+      name: "MHOC401 Hum"
+      accuracy_decimals: 0
+    battery_level:
+      name: "MHOC401 Batt"
+
+#  - platform: adc
+#    pin: GPIO35
+#    id: "VCC"
+#    internal: true
+#    # Max Vcc: 1.1 0db, 1.5 2.5db, 2.2V 6db, 3.9V 11db
+#    attenuation: 11db
+#    update_interval: 60s
+#    # Voltage divider on VCC to GPIO35 R1=R2=100k 1:2
+#    filters:
+#      - multiply: "${voltage_divider}"
+#    accuracy_decimals: 5
+#    unit_of_measurement: V
+
+#  - platform: template
+#    name: "${device_name} Battery"
+#    id: "battery"
+#    unit_of_measurement: "%"
+#    update_interval: 60s
+#    # vmin 3.5 vmax 4.2
+#    lambda: |-
+#      float battery_perc = 100.00 * (id(VCC).state - 3.5) / (4.20-3.5);
+#      return (battery_perc > 100.0) ? 100.0 : battery_perc ;
+
+text_sensor:
+  - platform: version
+    name: "${device_name} Version"
+
+  - platform: wifi_info
+    ip_address:
+      name: "${device_name} IPv4"
+      icon: "mdi:server-network"
+    ssid:
+      name: "${device_name} Connected SSID"
+      icon: "mdi:wifi"
+
+  - platform: template
+    name: "${device_name} Uptime"
+    icon: "mdi:timer"
+    update_interval: 360s
+    lambda: |-
+      int seconds = id(uptime_sec).state;
+      int days = seconds / (24 * 3600);
+      seconds = seconds % (24 * 3600);
+      int hours = seconds / 3600;
+      seconds = seconds % 3600;
+      int minutes = seconds /  60;
+      return { (String(days) +"d " + String(hours) +"h " + String(minutes) +"m").c_str() };
+
+output:
+  - platform: ledc
+    pin: GPIO05
+    id: gpio_05
+
+light:
+  - platform: monochromatic
+    output: gpio_05
+    name: tkoala_led
+    id: tkoala_led
+
+  - platform: fastled_clockless
+    chipset: WS2812B
+    pin: GPIO15
+    num_leds: 3
+    #rgb_order: BRG
+    rgb_order: GRB
+    name: "${device_name} led strip"
+    effects:
+      - addressable_rainbow:
+          name: Rainbow
+          speed: 10
+          width: 50
+      - addressable_color_wipe:
+      - addressable_color_wipe:
+          name: Color Wipe Custom
+          colors:
+            - red: 100%
+              green: 100%
+              blue: 100%
+              num_leds: 8
+            - red: 0%
+              green: 0%
+              blue: 0%
+              num_leds: 8
+          add_led_interval: 100ms
+          reverse: False
+      - addressable_scan:
+      - addressable_scan:
+          name: Scan Effect Custom
+          move_interval: 100ms
+          scan_width: 1
+      - addressable_twinkle:
+      - addressable_twinkle:
+          name: Twinkle Effect Custom
+          twinkle_probability: 5%
+          progress_interval: 4ms
+      - addressable_random_twinkle:
+      - addressable_random_twinkle:
+          name: Twinkle Effect Random Custom
+          twinkle_probability: 5%
+          progress_interval: 32ms
+      - addressable_fireworks:
+      - addressable_fireworks:
+          name: Fireworks Effect Custom
+          update_interval: 32ms
+          spark_probability: 10%
+          use_random_color: false
+          fade_out_rate: 120
+      - addressable_flicker:
+      - addressable_flicker:
+          name: Flicker Effect Custom
+          update_interval: 16ms
+          intensity: 5%
+      - addressable_lambda:
+          name: "Lambda Custom Effect 1"
+          update_interval: 16ms
+          lambda: |-
+            // it.size() - Number of LEDs
+            // it[num] - Access the LED at index num.
+            // Set the LED at num to the given r, g, b values
+            // it[num] = ESPColor(r, g, b);
+            // Get the color at index num (ESPColor instance)
+            // it[num].get();
+
+            // Example: Simple color wipe
+            for (int i = it.size() - 1; i > 0; i--) {
+              it[i] = it[i - 1].get();
+            }
+            it[0] = ESPColor::random_color();
+
+            // Bonus: use .range() and .all() to set many LEDs without having to write a loop.
+            it.range(0, 50) = ESPColor::BLACK;
+            it.all().fade_to_black(10);
+      - addressable_lambda:
+          name: "Lambda Custom Effect 2"
+          update_interval: 16ms
+          lambda: |-
+            // Static variables keep their value even when
+            // stopping and starting the effect again
+            static uint16_t progress = 0;
+
+            // normal variables lost their value after each
+            // execution - basically after each update_interval
+            uint16_t changes = 0;
+
+            // To reset static when stopping and starting the effect
+            // again you can use the initial_run variables
+            if (initial_run) {
+              progress = 0;
+              it.all() = ESPColor::BLACK;
+              // optionally do a return so nothing happens until the next update_interval
+              return;
+            }
+
+#spi:
+#  clk_pin:  GPIO18
+#  mosi_pin: GPIO23
+
+#deep_sleep:
+#  run_duration: 8s
+#  sleep_duration: 60s
+#  wakeup_pin:
+#    number: GPIO00
+#    inverted: True
+#  wakeup_pin_mode: IGNORE
+#  id: deep_sleep_1

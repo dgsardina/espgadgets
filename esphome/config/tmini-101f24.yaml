@@ -1,0 +1,23 @@
+substitutions:
+  # e8:68:e7:10:1f:24
+  device_name: "tmini-101f24"
+  friendly_name: "tmini-ldy"
+  area: "Rack"
+  device_ip: "192.168.1.41"
+  status_led_pin: GPIO19
+  device_wake_button_pin: GPIO39
+  voltage_divider: "1.840"
+  temperature_offset: "0.03"
+  humidity_offset: "0.297"
+  pressure_offset: "0.000" # Ref
+  vbat_max: "4.2"
+  vbat_min: "3.5"
+  sleep_duration: 120s
+  run_duration: 200ms
+  log_level: DEBUG
+
+packages:
+  device_base: !include common/bme280_base.yaml
+  wifi_static: !include common/wifi_static.yaml
+  mqtt_sleep: !include common/mqtt_sleep.yaml
+  deep_sleep: !include common/deep_sleep.yaml

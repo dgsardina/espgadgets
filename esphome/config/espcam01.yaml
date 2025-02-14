@@ -1,0 +1,85 @@
+# TTGO T-Camera V17
+substitutions:
+  device_name: espcam01
+
+esphome:
+  name: '${device_name}'
+  platform: ESP32
+  board: esp-wrover-kit
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+
+# Enable logging
+logger:
+
+# Enable Home Assistant API
+api:
+
+ota:
+
+esp32_camera:
+  name: "${device_name}"
+  external_clock:
+    pin: GPIO32
+    frequency: 20MHz
+  i2c_pins:
+    sda: GPIO13
+    scl: GPIO12
+  data_pins: [GPIO5, GPIO14, GPIO4, GPIO15, GPIO18, GPIO23, GPIO36, GPIO39]
+  vsync_pin: GPIO27
+  href_pin: GPIO25
+  pixel_clock_pin: GPIO19
+  #power_down_pin: GPIO26
+  vertical_flip: true
+  horizontal_mirror: true
+  #resolution: "1024x768"
+  resolution: "800x600"
+  #jpeg_quality: 10
+  jpeg_quality: 12
+  max_framerate: "30 fps"
+  idle_framerate: "0.1 fps"
+
+binary_sensor:
+  - platform: gpio
+    id: pir
+    name: "${device_name}_pir"
+    pin:
+      number: 33
+  - platform: gpio
+    name: "${device_name}_button"
+    pin:
+      number: 34
+      inverted: True
+
+i2c:
+  sda: 21
+  scl: 22
+  scan: True
+
+#sensor:
+#  - platform: bme280
+#    temperature:
+#      name: "espcam01_temperature"
+#      oversampling: 16x
+#    pressure:
+#      name: "espcam01_pressure"
+#    humidity:
+#      name: "espcam01_humidity"
+
+font:
+  - file: 'fonts/materialdesignicons-webfont.ttf'
+    id: font_icons
+    size: 50
+    glyphs:
+      - "\U000F002A" # alert-outline
+
+display:
+  - platform: ssd1306_i2c
+    model: "SSD1306 128x64"
+    rotation: 180
+    update_interval: 1s
+    lambda: |-
+      it.printf(40, 32, id(font_icons), "%s", id(pir).state ? "\U000F002A" : "");
+

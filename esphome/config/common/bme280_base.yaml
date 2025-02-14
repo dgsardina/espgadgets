@@ -1,0 +1,208 @@
+esphome:
+  name: "${device_name}"
+  friendly_name: "${friendly_name}"
+  area: "${area}"
+  #name_add_mac_suffix: false
+  platform: ESP32
+  board: esp32dev
+  platformio_options:
+    ## We lower the CPU freq from 240 to 80MHz to reduce consumption
+    board_build.f_cpu: 80000000L
+    upload_speed: 115200
+  #on_boot:
+  #  priority: 900
+  #  then:
+  #    lambda: |-
+  #      id(wake_up_reason) = esp_sleep_get_wakeup_cause();
+  #      id(cpu_speed) = ESP.getCpuFreqMHz();
+
+##  https://gist.github.com/boverby/26bde9e5f53c645996afc5002d3bca6b
+##  https://github.com/esphome/feature-requests/issues/547  for wakeup reason
+##  https://community.home-assistant.io/t/help-with-mqtt-on-message-for-deepsleep-mode/199583
+##  https://esphome-configs.io/devices/esp32-deep-sleep-bme280/
+
+logger:
+  level: "${log_level}"
+
+globals:
+  - id: ota_mode
+    type: bool
+    restore_value: yes
+    initial_value: 'false'
+#  - id: wake_up_reason
+#    type: int
+#    restore_value: no
+#    initial_value: '0'
+#  - id: cpu_speed
+#    type: int
+#    restore_value: no
+#    initial_value: '0'
+
+#web_server:
+#  port: 80
+
+ota:
+
+#time:
+#  - platform: sntp
+#    id: sntp_time
+#    timezone: Europe/Athens
+#    servers:
+#      - 192.168.1.1
+
+#binary_sensor:
+#  - platform: gpio
+#    name: "${device_name}_sw1"
+#    id: sw1
+#    pin:
+#      number: "${device_wake_button_pin}"
+#      mode: INPUT_PULLUP
+#      inverted: True
+#    filters:
+#        - delayed_on: 5ms
+#    on_click:
+#      min_length: 50ms
+#      max_length: 350ms
+#      then:
+#        - if:
+#            condition:
+#              - light.is_off:
+#                  id: led
+#            then:
+#              - light.turn_on:
+#                  id: led
+#                  brightness: 80%
+#            else:
+#              - light.turn_off: led
+i2c:
+  sda: 21
+  scl: 22
+  scan: False
+
+#spi:
+#  clk_pin:  GPIO18
+#  mosi_pin: GPIO23
+
+sensor:
+  - platform: wifi_signal
+    id: wifi_strength
+    name: "WiFi Signal"
+    update_interval: 360s
+  - platform: template
+    name: "Battery"
+    id: "battery"
+    entity_category: diagnostic
+    device_class: battery
+    state_class: measurement
+    unit_of_measurement: "%"
+    # update_interval: 60s
+    # vmin 3.5 vmax 4.2
+    #  float battery_perc = 100.00 * (id(VCC).state - 3.5) / (4.2 - 3.5);
+    # lambda: |-
+    #   float battery_perc = 100.00 * (id(VCC).state - ${vbat_min}) / (${vbat_max} - ${vbat_min});
+    #   return (battery_perc > 100.0) ? 100.0 : battery_perc ;
+  - platform: adc
+    name: "Battery Voltage"
+    id: "VCC"
+    pin: GPIO35
+    #internal: true
+    # Max Vcc: 1.1 0db, 1.5 2.5db, 2.2V 6db, 3.9V 11db
+    attenuation: 12db
+    accuracy_decimals: 2
+    unit_of_measurement: V
+    # update_interval: 1s
+    filters:
+      # Voltage divider on VCC to GPIO35 R1=R2=100k 1:2
+      - multiply: "${voltage_divider}"
+      #- sliding_window_moving_average:
+      #    window_size: 2
+      #    send_every: 2
+    on_value:
+      then:
+        - sensor.template.publish:
+            id: battery
+            state: !lambda |-
+              float battery_perc = 100.00 * (id(VCC).state - ${vbat_min}) / (${vbat_max} - ${vbat_min});
+              return (battery_perc > 100.0) ? 100.0 : battery_perc ;
+  - platform: bme280_i2c
+    ## From datasheep the recommendations are: forced_mode,
+    ## update every 60s, use oversampling 1x and IIR filter OFF
+    ## See https://github.com/esphome/issues/issues/402
+    temperature:
+      name: "Temperature"
+      id: bme280_temperature
+      oversampling: 1x
+      accuracy_decimals: 2
+      filters:
+        - offset: "${temperature_offset}"
+    pressure:
+      name: "Pressure"
+      id: bme280_pressure
+      oversampling: 1x
+      accuracy_decimals: 3
+      filters:
+        - offset: "${pressure_offset}"
+    humidity:
+      name: "Humidity"
+      id: bme280_humidity
+      oversampling: 1x
+      accuracy_decimals: 3
+      filters:
+        - offset: "${humidity_offset}"
+    address: 0x76
+    update_interval: 60s
+  #- platform: uptime
+  #  name: "Uptime Sec"
+  #  id: uptime_sec
+  #  internal: true
+  #- platform: template
+  #  name: "Wake up reason"
+  #  accuracy_decimals: 0
+  #  lambda: |-
+  #    return(id(wake_up_reason));
+  #- platform: template
+  #  name: "CPU speed"
+  #  accuracy_decimals: 0
+  #  lambda: |-
+  #    return(id(cpu_speed));
+
+#text_sensor:
+#  - platform: version
+#    name: "Version"
+#  - platform: wifi_info
+#    ip_address:
+#      name: "IPv4"
+#      icon: "mdi:server-network"
+#    ssid:
+#      name: "Connected SSID"
+#     icon: "mdi:wifi"
+#
+#  - platform: template
+#    name: "Uptime"
+#    icon: "mdi:timer"
+#    #update_interval: 360s
+#    lambda: |-
+#      int seconds = id(uptime_sec).state;
+#      int days = seconds / (24 * 3600);
+#      seconds = seconds % (24 * 3600);
+#      int hours = seconds / 3600;
+#      seconds = seconds % 3600;
+#      int minutes = seconds /  60;
+#      return { (String(days) +"d " + String(hours) +"h " + String(minutes) +"m").c_str() };
+
+output:
+  - platform: ledc
+    pin: "${status_led_pin}"
+    id: gpio_led
+
+light:
+  - platform: monochromatic
+    output: gpio_led
+    name: "Led"
+    internal: true
+    id: led
+    restore_mode: ALWAYS_OFF
+    on_turn_on:
+      - logger.log: "Led turned ON"
+    on_turn_off:
+      - logger.log: "Led turned OFF"
