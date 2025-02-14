@@ -8,3 +8,6 @@
 **/src/
 **/platformio.ini
 /secrets.yaml
+temp/
+venv/
+.venv/
