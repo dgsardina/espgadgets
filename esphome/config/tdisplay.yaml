@@ -1,0 +1,106 @@
+substitutions:
+  device_name: "tdisplay-ofc"
+  friendly_name: "tdisplay-ofc"
+  area: "Office"
+  vbat_adc_factor: "1.964"
+  vbat_max: "4.2"
+  vbat_min: "3.0"
+  device_ip: "192.168.1.50"
+  sntp_server_0: "192.168.1.1"
+  log_level: "DEBUG"
+
+esphome:
+  name: "${device_name}"
+  friendly_name: "${friendly_name}"
+  area: "${area}"
+
+packages:
+  board: !include common/boards/liligo_t-display_v1.1.yaml
+  wifi_static: !include common/component/wifi_static.yaml
+  mqtt: !include common/component/mqtt.yaml
+  sntp: !include common/component/sntp.yaml
+  # vbat: !include common/component/vbat_adc.yaml
+  sen55: !include common/sensors/sen55.yaml
+  senseair: !include common/sensors/senseair_s8.yaml
+
+logger:
+  level: "${log_level}"
+
+binary_sensor:
+  - id: !extend button_1
+    internal: true
+    on_click:
+      if:
+        condition:
+          light.is_on: back_light
+        then:
+          - light.dim_relative:
+              id: back_light
+              relative_brightness: -20%
+        else:
+          - light.turn_on: back_light
+  - id: !extend button_2
+    internal: true
+    on_click:
+      then:
+        - light.toggle: back_light
+
+# Define colors
+color:
+  - id: white
+    hex: FFFFFF
+  - id: magenta
+    hex: FF00FF
+  - id: red
+    hex: FF0000
+  - id: orange
+    hex: FFAA00
+  - id: yellow
+    hex: FFFF00
+  - id: green
+    hex: 00FF00
+  - id: dark_green
+    hex: 00AA00
+
+# Include custom fonts
+font:
+  - file: "gfonts://Roboto+Condensed"
+    id: font_text
+    size: 22
+
+display:
+  - id: !extend shottimer_display
+    lambda: |-
+      #define LEADING 24
+      #define H_CENTER 120
+
+      int line = 0;
+
+      // See: https://atmotube.com/atmocube-support/indoor-air-quality-index-iaqi
+      // See: https://www.airgradient.com/documents/infographics/AQ-Monitor-Cheatsheet.pdf
+      float co2_ppm = id(co2).state;
+      auto co2_color = white;
+      if (co2_ppm > 1800) {
+        co2_color = magenta;
+      } else if (co2_ppm > 1500) {
+        co2_color = red;
+      } else if (co2_ppm > 1000) {
+        co2_color = orange;
+      } else if (co2_ppm > 800) {
+        co2_color = yellow;
+      } else if (co2_ppm > 600) {
+        co2_color = green;
+      } else {
+        co2_color = dark_green;
+      }
+      it.printf(0, LEADING * line++, id(font_text), TextAlign::TOP_LEFT, "Tem: %4.1f°C", id(sen5x_temperature).state);
+      it.printf(0, LEADING * line++, id(font_text), co2_color, TextAlign::TOP_LEFT, "CO2: %4.0f", co2_ppm);
+      it.printf(0, LEADING * line++, id(font_text), TextAlign::TOP_LEFT, "NOx: %4.1f", id(voc).state);
+      it.printf(0, LEADING * line++, id(font_text), TextAlign::TOP_LEFT, "VOC: %4.1f", id(nox).state);
+      line = 0;
+      it.printf(H_CENTER, LEADING * line++, id(font_text), TextAlign::TOP_LEFT, "Hum: %4.1f%%", id(sen5x_humidity).state);
+      it.printf(H_CENTER, LEADING * line++, id(font_text), TextAlign::TOP_LEFT, "PM1.0:  %4.1f", id(pm_1_0).state);
+      it.printf(H_CENTER, LEADING * line++, id(font_text), TextAlign::TOP_LEFT, "PM2.5:  %4.1f", id(pm_2_5).state);
+      it.printf(H_CENTER, LEADING * line++, id(font_text), TextAlign::TOP_LEFT, "PM4.0:  %4.1f", id(pm_4_0).state);
+      it.printf(H_CENTER, LEADING * line++, id(font_text), TextAlign::TOP_LEFT, "PM10.0: %4.1f", id(pm_10_0).state);
+      // it.printf(it.get_width()/2, it.get_height()/2, id(font_text), color_text, TextAlign::CENTER, "%.2f", id(battery_voltage).state);

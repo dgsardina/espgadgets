@@ -1,0 +1,83 @@
+# https://lilygo.cc/products/lilygo%C2%AE-ttgo-t-display-1-14-inch-lcd-esp32-control-board
+substitutions:
+  vbat_adc_pin: "34"
+  i2c_sda_pin: "21"
+  i2c_scl_pin: "22"
+  uart_rx_pin:  "25"
+  uart_tx_pin:  "26"
+  button_1_pin: "GPIO0"
+  button_2_pin: "GPIO35"
+  spi_clk_pin: "GPIO18"
+  spi_mosi_pin: "GPIO19"
+  spi_cs_pin: "GPIO5"
+  spi_dc_pin: "GPIO16"
+  spi_reset_pin: "GPIO23"
+  backlight_pwm_pin: "4"
+
+esp32:
+  board: esp32dev
+  framework:
+    type: arduino
+
+binary_sensor:
+  - id: button_1
+    platform: gpio
+    name: "Button 1"
+    pin:
+      number: ${button_1_pin}
+      inverted: true
+      # allow_other_uses: true
+      mode:
+        input: true
+        pullup: true
+  - id: button_2
+    platform: gpio
+    name: "Button 2"
+    pin:
+      number: ${button_2_pin}
+      inverted: true
+
+output:
+  - platform: ledc
+    pin: "${backlight_pwm_pin}"
+    id: backlight_pwm
+
+light:
+  - platform: monochromatic
+    output: backlight_pwm
+    name: "Display Backlight"
+    id: back_light
+    restore_mode: ALWAYS_ON
+
+spi:
+  clk_pin: "${spi_clk_pin}"
+  mosi_pin: "${spi_mosi_pin}"
+
+display:
+  - platform: ili9xxx
+    id: shottimer_display
+    model: st7789v
+    cs_pin: "${spi_cs_pin}"
+    dc_pin: "${spi_dc_pin}"
+    reset_pin: "${spi_reset_pin}"
+    update_interval: 1s
+    invert_colors: true
+    data_rate: 80Mhz
+    # rotation: 270°
+    transform:
+      swap_xy: true
+      mirror_y: true
+    dimensions:
+      width: 240
+      height: 135
+      offset_width: 40
+      offset_height: 52
+
+# deep_sleep:
+#  # run_duration: 5min
+#   id: deepsleep
+#   esp32_ext1_wakeup:
+#     mode: ALL_LOW
+#     pins:
+#       - number: 0
+#         allow_other_uses: true

@@ -1,0 +1,6 @@
+time:
+  - platform: sntp
+    id: sntp_time
+    timezone: Europe/Athens
+    servers:
+     - "${sntp_server_0}"

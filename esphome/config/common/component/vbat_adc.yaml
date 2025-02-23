@@ -1,0 +1,27 @@
+sensor:
+  - platform: template
+    name: "Battery Percentage"
+    id: battery_percentage
+    unit_of_measurement: '%'
+    update_interval: 10s
+    entity_category: diagnostic
+    device_class: battery
+  - platform: adc
+    name: "Battery Voltage"
+    id: battery_voltage
+    pin: "${vbat_adc_pin}"
+    attenuation: 12db
+    accuracy_decimals: 2
+    unit_of_measurement: V
+    samples: 10
+    update_interval: 10s
+    entity_category: diagnostic
+    filters:
+      - multiply: "${vbat_adc_factor}"
+    on_value:
+      then:
+        - sensor.template.publish:
+            id: battery_percentage
+            state: !lambda |-
+              float battery_perc = 100.00 * (id(battery_voltage).state - ${vbat_min}) / (${vbat_max} - ${vbat_min});
+              return (battery_perc > 100.0) ? 100.0 : (battery_perc < 0) ? 0.0 : battery_perc ;

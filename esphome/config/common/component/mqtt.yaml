@@ -1,0 +1,12 @@
+mqtt:
+  broker: !secret mqtt_broker
+  port: !secret mqtt_port
+  username: !secret mqtt_username
+  password: !secret mqtt_password
+  discovery: True
+  discovery_retain: True
+  discovery_unique_id_generator: "mac"
+  keepalive: 120s
+  #birth_message:
+  will_message:
+  topic_prefix: "esphome/${device_name}"
