@@ -13,6 +13,8 @@ esphome:
   name: "${device_name}"
   friendly_name: "${friendly_name}"
   area: "${area}"
+  includes:
+    - common/source/air_quality_color_mappings.h
 
 packages:
   board: !include common/boards/liligo_t-display_v1.1.yaml
@@ -45,24 +47,6 @@ binary_sensor:
       then:
         - light.toggle: back_light
 
-# Define colors
-color:
-  - id: white
-    hex: FFFFFF
-  - id: magenta
-    hex: FF00FF
-  - id: red
-    hex: FF0000
-  - id: orange
-    hex: FFAA00
-  - id: yellow
-    hex: FFFF00
-  - id: green
-    hex: 00FF00
-  - id: dark_green
-    hex: 00AA00
-
-# Include custom fonts
 font:
   - file: "gfonts://Roboto+Condensed"
     id: font_text
@@ -75,68 +59,6 @@ display:
       #define H_CENTER 120
 
       int line = 0;
-
-      // See: https://www.airgradient.com/documents/infographics/AQ-Monitor-Cheatsheet.pdf
-      // See: https://atmotube.com/atmocube-support/indoor-air-quality-index-iaqi
-      std::map<int, esphome::Color> co2_color_thresholds
-      {
-        {    0, dark_green},
-        {  600, green},
-        {  800, yellow},
-        { 1000, orange},
-        { 1500, red},
-        { 1800, magenta}
-      };
-
-      std::map<int, esphome::Color> nox_color_thresholds
-      {
-        {   0, dark_green},
-        {  50, green},
-        {  75, yellow},
-        { 100, orange},
-        { 300, red},
-        { 350, magenta}
-      };
-
-      std::map<int, esphome::Color> voc_color_thresholds
-      {
-        {   0, dark_green},
-        {  50, green},
-        {  75, yellow},
-        { 100, orange},
-        { 300, red},
-        { 350, magenta}
-      };
-
-      std::map<int, esphome::Color> pm_1_0_color_thresholds
-      {
-        {  0, dark_green},
-        { 15, green},
-        { 25, yellow},
-        { 35, orange},
-        { 62, red},
-        { 96, magenta}
-      };
-
-      std::map<int, esphome::Color> pm_2_5_color_thresholds
-      {
-        {  0, dark_green},
-        { 21, green},
-        { 36, yellow},
-        { 51, orange},
-        { 91, red},
-        { 141, magenta}
-      };
-
-      std::map<int, esphome::Color> pm_10_0_color_thresholds
-      {
-        {  0, dark_green},
-        { 31, green},
-        { 51, yellow},
-        { 76, orange},
-        { 126, red},
-        { 201, magenta}
-      };
 
       float co2_ppm = id(co2).state;
       auto co2_color = co2_color_thresholds.lower_bound(co2_ppm) -> second;
